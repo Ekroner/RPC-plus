@@ -1,0 +1,4 @@
+jdk=com.ekroner.rpc.serializer.JdkSerializer
+hessian=com.ekroner.rpc.serializer.HessianSerializer
+json=com.ekroner.rpc.serializer.JsonSerializer
+kryo=com.ekroner.rpc.serializer.KryoSerializer
