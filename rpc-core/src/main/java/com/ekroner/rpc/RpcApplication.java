@@ -1,7 +1,10 @@
 package com.ekroner.rpc;
 
+import com.ekroner.rpc.config.RegistryConfig;
 import com.ekroner.rpc.config.RpcConfig;
 import com.ekroner.rpc.constant.RpcConstant;
+import com.ekroner.rpc.registry.Registry;
+import com.ekroner.rpc.registry.RegistryFactory;
 import com.ekroner.rpc.utils.ConfigUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,11 +19,16 @@ public class RpcApplication {
   /**
    * 初始化RPC框架
    *
-   * @param newRpcConfig
+   * @param newRpcConfig 自定义配置
    */
   public static void init(RpcConfig newRpcConfig) {
     rpcConfig = newRpcConfig;
     log.info("rpc init, config = {}", newRpcConfig.toString());
+    // 初始化注册中心
+    RegistryConfig registryConfig = rpcConfig.getRegistryConfig();
+    Registry registry = RegistryFactory.getInstance(registryConfig.getRegistry());
+    registry.init(registryConfig);
+    log.info("registry init, config = {}", registryConfig);
   }
 
   /**

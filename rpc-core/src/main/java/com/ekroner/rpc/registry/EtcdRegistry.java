@@ -51,7 +51,7 @@ public class EtcdRegistry implements Registry{
     @Override
     public List<ServiceMetaInfo> seriveDiscovery(String serviceKey) {
 
-        String searchPrefix = ETCD_ROOT_PATH + serviceKey + "/";
+        String searchPrefix = ETCD_ROOT_PATH + serviceKey;
 
         try {
             GetOption getOption = GetOption.builder().isPrefix(true).build();
