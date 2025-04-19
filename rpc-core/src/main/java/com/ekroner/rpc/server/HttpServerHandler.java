@@ -1,10 +1,11 @@
 package com.ekroner.rpc.server;
 
+import com.ekroner.rpc.RpcApplication;
 import com.ekroner.rpc.model.RpcRequest;
 import com.ekroner.rpc.model.RpcResponse;
 import com.ekroner.rpc.registry.LocalRegistry;
-import com.ekroner.rpc.serializer.JdkSerializer;
 import com.ekroner.rpc.serializer.Serializer;
+import com.ekroner.rpc.serializer.SerializerFactory;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -17,7 +18,7 @@ public class HttpServerHandler implements Handler<HttpServerRequest> {
 
   @Override
   public void handle(HttpServerRequest request) {
-    final Serializer serializer = new JdkSerializer();
+    final Serializer serializer = SerializerFactory.getInstance(RpcApplication.getRpcConfig().getSerializer());
 
     System.out.println("Received request: " + request.method() + " " + request.uri());
 
