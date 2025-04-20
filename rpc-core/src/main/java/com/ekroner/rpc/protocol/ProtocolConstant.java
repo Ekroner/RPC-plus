@@ -3,7 +3,7 @@ package com.ekroner.rpc.protocol;
 /**
  * 协议常量
  */
-public class ProtocolConstant {
+public interface ProtocolConstant {
 
     /**
      * 消息头长度
