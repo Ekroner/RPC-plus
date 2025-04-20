@@ -3,9 +3,7 @@ package com.ekroner.rpc.registry;
 import com.ekroner.rpc.config.RegistryConfig;
 import com.ekroner.rpc.model.ServiceMetaInfo;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 注册中心
@@ -48,7 +46,10 @@ public interface Registry {
     void heartBeat();
 
     /**
-     * 本机注册的节点key集合
+     * 监听
+     *
+     * @param serviceNodeKey
      */
-    final Set<String> localRegisterNodeKeySet = new HashSet<>();
+    void watch(String serviceNodeKey);
+
 }

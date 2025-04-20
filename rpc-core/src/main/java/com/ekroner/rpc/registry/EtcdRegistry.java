@@ -1,6 +1,7 @@
 package com.ekroner.rpc.registry;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.ConcurrentHashSet;
 import cn.hutool.cron.CronUtil;
 import cn.hutool.cron.task.Task;
 import cn.hutool.json.JSONUtil;
@@ -9,10 +10,13 @@ import com.ekroner.rpc.model.ServiceMetaInfo;
 import io.etcd.jetcd.*;
 import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.options.PutOption;
+import io.etcd.jetcd.watch.WatchEvent;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EtcdRegistry implements Registry{
@@ -20,6 +24,15 @@ public class EtcdRegistry implements Registry{
     private Client client;
 
     private KV kvClient;
+
+    /**
+     * 本机注册的节点key集合
+     */
+    private final Set<String> localRegisterNodeKeySet = new HashSet<>();
+
+    private final RegistryServiceCache registryServiceCache = new RegistryServiceCache();
+
+    private final Set<String> watchingKetSet = new ConcurrentHashSet<>();
 
     /**
      * 根节点
@@ -65,6 +78,11 @@ public class EtcdRegistry implements Registry{
     @Override
     public List<ServiceMetaInfo> seriveDiscovery(String serviceKey) {
 
+        List<ServiceMetaInfo> cachedServiceMetaInfoList = registryServiceCache.readCache(serviceKey);
+        if(cachedServiceMetaInfoList != null) {
+            return cachedServiceMetaInfoList;
+        }
+
         String searchPrefix = ETCD_ROOT_PATH + serviceKey;
 
         try {
@@ -75,12 +93,17 @@ public class EtcdRegistry implements Registry{
                 .get()
                 .getKvs();
 
-            return keyValues.stream()
+            List<ServiceMetaInfo> serviceMetaInfoList = keyValues.stream()
                     .map(keyValue -> {
+                        String key = keyValue.getKey().toString(StandardCharsets.UTF_8);
+                        watch(key);
                         String value = keyValue.getValue().toString(StandardCharsets.UTF_8);
                         return JSONUtil.toBean(value, ServiceMetaInfo.class);
                     })
                     .collect(Collectors.toList());
+
+            registryServiceCache.writeCache(serviceKey, serviceMetaInfoList);
+            return serviceMetaInfoList;
         } catch (Exception e) {
             throw new RuntimeException("获取服务列表失败", e);
         }
@@ -89,6 +112,14 @@ public class EtcdRegistry implements Registry{
     @Override
     public void destroy() {
         System.out.println("当前节点下线");
+
+        for(String key : localRegisterNodeKeySet) {
+            try {
+                kvClient.delete(ByteSequence.from(key, StandardCharsets.UTF_8)).get();
+            } catch (Exception e) {
+                throw new RuntimeException(key + "节点下线失败", e);
+            }
+        }
 
         if(kvClient != null) {
             kvClient.close();
@@ -125,5 +156,26 @@ public class EtcdRegistry implements Registry{
 
         CronUtil.setMatchSecond(true);
         CronUtil.start();
+    }
+
+    @Override
+    public void watch(String serviceNodeKey) {
+        Watch watchClient = client.getWatchClient();
+
+        boolean newWatch = watchingKetSet.add(serviceNodeKey);
+        if(newWatch) {
+            watchClient.watch(ByteSequence.from(serviceNodeKey, StandardCharsets.UTF_8), response -> {
+                for(WatchEvent event : response.getEvents()) {
+                    switch (event.getEventType()) {
+                        case DELETE:
+                            registryServiceCache.clearCache(serviceNodeKey);
+                            break;
+                        case PUT:
+                        default:
+                            break;
+                    }
+                }
+            });
+        }
     }
 }
