@@ -11,6 +11,7 @@ import com.ekroner.rpc.registry.LocalRegistry;
 import com.ekroner.rpc.registry.RegistryFactory;
 import com.ekroner.rpc.server.HttpServer;
 import com.ekroner.rpc.server.VertxHttpServer;
+import com.ekroner.rpc.server.tcp.VertxTcpServer;
 
 /**
  * 服务提供者示例
@@ -39,7 +40,7 @@ public class ProviderExample {
       throw new RuntimeException(e);
     }
 
-    HttpServer httpServer = new VertxHttpServer();
-    httpServer.doStart(RpcApplication.getRpcConfig().getServerPort());
+    VertxTcpServer vertxTcpServer = new VertxTcpServer();
+    vertxTcpServer.doStart(8080);
   }
 }

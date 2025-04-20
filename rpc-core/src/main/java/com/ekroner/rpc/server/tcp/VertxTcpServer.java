@@ -2,14 +2,9 @@ package com.ekroner.rpc.server.tcp;
 
 import com.ekroner.rpc.server.HttpServer;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetServer;
 
 public class VertxTcpServer implements HttpServer {
-
-    private byte[] handleRequest(byte[] requestData) {
-        return "Hello, Client!".getBytes();
-    }
 
     @Override
     public void doStart(int port) {
@@ -18,15 +13,7 @@ public class VertxTcpServer implements HttpServer {
 
         NetServer server = vertx.createNetServer();
 
-        server.connectHandler(socket -> {
-           socket.handler(buffer -> {
-               byte[] requestData = buffer.getBytes();
-
-               byte[] responseData = handleRequest(requestData);
-
-               socket.write(Buffer.buffer(responseData));
-           });
-        });
+        server.connectHandler(new TcpServerHandler());
 
         server.listen(port, result -> {
            if(result.succeeded()) {
@@ -36,9 +23,5 @@ public class VertxTcpServer implements HttpServer {
                System.err.println("Failed to start TCP server: " + result.cause());
            }
         });
-    }
-
-    public static void main(String[] args) {
-        new VertxTcpServer().doStart(8888);
     }
 }
