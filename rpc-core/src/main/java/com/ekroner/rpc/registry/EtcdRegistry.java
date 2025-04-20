@@ -1,5 +1,8 @@
 package com.ekroner.rpc.registry;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.cron.CronUtil;
+import cn.hutool.cron.task.Task;
 import cn.hutool.json.JSONUtil;
 import com.ekroner.rpc.config.RegistryConfig;
 import com.ekroner.rpc.model.ServiceMetaInfo;
@@ -25,8 +28,12 @@ public class EtcdRegistry implements Registry{
 
     @Override
     public void init(RegistryConfig registryConfig) {
-        client = Client.builder().endpoints(registryConfig.getAddress()).connectTimeout(Duration.ofMillis(registryConfig.getTimeout())).build();
+        client = Client.builder()
+                .endpoints(registryConfig.getAddress())
+                .connectTimeout(Duration.ofMillis(registryConfig.getTimeout()))
+                .build();
         kvClient = client.getKVClient();
+        heartBeat();
     }
 
     @Override
@@ -39,13 +46,20 @@ public class EtcdRegistry implements Registry{
         ByteSequence key = ByteSequence.from(registerKey, StandardCharsets.UTF_8);
         ByteSequence value = ByteSequence.from(JSONUtil.toJsonStr(serviceMetaInfo), StandardCharsets.UTF_8);
 
+        // 设置租约
         PutOption putOption = PutOption.builder().withLeaseId(leaseId).build();
         kvClient.put(key, value, putOption).get();
+
+        // 记录本地注册的节点
+        localRegisterNodeKeySet.add(registerKey);
     }
 
     @Override
     public void unregister(ServiceMetaInfo serviceMetaInfo) {
-        kvClient.delete(ByteSequence.from(ETCD_ROOT_PATH + serviceMetaInfo.getServiceKey(), StandardCharsets.UTF_8));
+        String registerKey = ETCD_ROOT_PATH + serviceMetaInfo.getServiceNodeKey();
+        kvClient.delete(ByteSequence.from(registerKey, StandardCharsets.UTF_8));
+
+        localRegisterNodeKeySet.remove(registerKey);
     }
 
     @Override
@@ -82,5 +96,34 @@ public class EtcdRegistry implements Registry{
         if(client != null) {
             client.close();
         }
+    }
+
+    @Override
+    public void heartBeat() {
+        CronUtil.schedule("*/10 * * * * *", new Task() {
+            @Override
+            public void execute() {
+                for(String key : localRegisterNodeKeySet) {
+                    try {
+                        List<KeyValue> keyValues = kvClient.get(ByteSequence.from(key, StandardCharsets.UTF_8))
+                                .get()
+                                .getKvs();
+                        if(CollUtil.isEmpty(keyValues)) {
+                            continue;
+                        }
+
+                        KeyValue keyValue = keyValues.get(0);
+                        String value = keyValue.getValue().toString(StandardCharsets.UTF_8);
+                        ServiceMetaInfo serviceMetaInfo = JSONUtil.toBean(value, ServiceMetaInfo.class);
+                        register(serviceMetaInfo);
+                    } catch (Exception e) {
+                        throw new RuntimeException(key + "续签失败", e);
+                    }
+                }
+            }
+        });
+
+        CronUtil.setMatchSecond(true);
+        CronUtil.start();
     }
 }
