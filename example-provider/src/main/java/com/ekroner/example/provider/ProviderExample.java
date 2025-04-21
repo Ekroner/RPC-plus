@@ -1,46 +1,21 @@
 package com.ekroner.example.provider;
 
 import com.ekroner.example.common.service.UserService;
-import com.ekroner.rpc.RpcApplication;
-import com.ekroner.rpc.config.RegistryConfig;
-import com.ekroner.rpc.config.RpcConfig;
-import com.ekroner.rpc.constant.RpcConstant;
-import com.ekroner.rpc.model.ServiceMetaInfo;
-import com.ekroner.rpc.registry.Registry;
-import com.ekroner.rpc.registry.LocalRegistry;
-import com.ekroner.rpc.registry.RegistryFactory;
-import com.ekroner.rpc.server.HttpServer;
-import com.ekroner.rpc.server.VertxHttpServer;
-import com.ekroner.rpc.server.tcp.VertxTcpServer;
+import com.ekroner.rpc.bootstrap.ProviderBootstrap;
+import com.ekroner.rpc.model.ServiceRegisterInfo;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 服务提供者示例
  */
 public class ProviderExample {
   public static void main(String[] args) {
-    //RPC 初始化
-    RpcApplication.init();
+    List<ServiceRegisterInfo<?>> serviceRegisterInfoList = new ArrayList<>();
+    ServiceRegisterInfo<UserService> serviceRegisterInfo = new ServiceRegisterInfo<>(UserService.class.getName(), UserServiceImpl.class);
+    serviceRegisterInfoList.add(serviceRegisterInfo);
 
-    //注册服务
-    String serviceName = UserService.class.getName();
-    LocalRegistry.register(serviceName, UserServiceImpl.class);
-
-    //注册服务到注册中心
-    RpcConfig rpcConfig = RpcApplication.getRpcConfig();
-    RegistryConfig registryConfig = rpcConfig.getRegistryConfig();
-    Registry registry = RegistryFactory.getInstance(registryConfig.getRegistry());
-    ServiceMetaInfo serviceMetaInfo = new ServiceMetaInfo();
-    serviceMetaInfo.setServiceName(serviceName);
-    serviceMetaInfo.setServiceVersion(rpcConfig.getVersion());
-    serviceMetaInfo.setServiceHost(rpcConfig.getServerHost());
-    serviceMetaInfo.setServicePort(rpcConfig.getServerPort());
-    try {
-      registry.register(serviceMetaInfo);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    VertxTcpServer vertxTcpServer = new VertxTcpServer();
-    vertxTcpServer.doStart(8080);
+    ProviderBootstrap.init(serviceRegisterInfoList);
   }
 }
