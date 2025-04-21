@@ -1,5 +1,6 @@
 package com.ekroner.rpc.config;
 
+import com.ekroner.rpc.fault.retry.RetryStrategyKeys;
 import com.ekroner.rpc.loadbalancer.LoadBalancerKeys;
 import com.ekroner.rpc.serializer.SerializerKeys;
 import lombok.Data;
@@ -44,6 +45,11 @@ public class RpcConfig {
    * 负载均衡器
    */
   private String loadBalancer = LoadBalancerKeys.ROUND_ROBIN;
+
+  /**
+   * 重试策略
+   */
+  private String retryStrategy = RetryStrategyKeys.NO;
 
   /**
    * 模拟调用

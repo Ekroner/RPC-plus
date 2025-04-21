@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollUtil;
 import com.ekroner.rpc.RpcApplication;
 import com.ekroner.rpc.config.RpcConfig;
 import com.ekroner.rpc.constant.RpcConstant;
+import com.ekroner.rpc.fault.retry.RetryStrategy;
+import com.ekroner.rpc.fault.retry.RetryStrategyFactory;
 import com.ekroner.rpc.loadbalancer.LoadBalancer;
 import com.ekroner.rpc.loadbalancer.LoadBalancerFactory;
 import com.ekroner.rpc.model.RpcRequest;
@@ -64,9 +66,13 @@ public class ServiceProxy implements InvocationHandler {
       requestParams.put("methodName", rpcRequest.getMethodName());
       ServiceMetaInfo selectedServiceMetaInfo = loadBalancer.select(requestParams, serviceMetaInfoList);
 
-      RpcResponse rpcResponse = VertxTcpClient.doRequest(rpcRequest, selectedServiceMetaInfo);
+      RetryStrategy retryStrategy = RetryStrategyFactory.getInstance(rpcConfig.getRetryStrategy());
+      RpcResponse rpcResponse = retryStrategy.doRetry(() ->
+              VertxTcpClient.doRequest(rpcRequest, selectedServiceMetaInfo)
+      );
       return rpcResponse.getData();
     } catch (Exception e) {
+//      throw new RuntimeException("调用失败");
       e.printStackTrace();
     }
 

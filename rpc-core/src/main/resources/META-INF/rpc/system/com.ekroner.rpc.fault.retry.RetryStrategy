@@ -1,0 +1,2 @@
+no=com.ekroner.rpc.fault.retry.NoRetryStrategy
+fixedInternal=com.ekroner.rpc.fault.retry.FixedIntervalRetryStrategy
