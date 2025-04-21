@@ -9,7 +9,7 @@ import java.util.TreeMap;
 /**
  * 一致性哈希负载均衡器
  */
-public class ConsistentLoadBalancer implements LoadBalancer{
+public class ConsistentHashLoadBalancer implements LoadBalancer{
 
     /**
      * 一致性哈希环

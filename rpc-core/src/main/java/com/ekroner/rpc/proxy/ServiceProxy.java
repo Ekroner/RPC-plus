@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollUtil;
 import com.ekroner.rpc.RpcApplication;
 import com.ekroner.rpc.config.RpcConfig;
 import com.ekroner.rpc.constant.RpcConstant;
+import com.ekroner.rpc.loadbalancer.LoadBalancer;
+import com.ekroner.rpc.loadbalancer.LoadBalancerFactory;
 import com.ekroner.rpc.model.RpcRequest;
 import com.ekroner.rpc.model.RpcResponse;
 import com.ekroner.rpc.model.ServiceMetaInfo;
@@ -15,7 +17,9 @@ import com.ekroner.rpc.server.tcp.VertxTcpClient;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 服务代理(JDK动态代理）
@@ -55,7 +59,10 @@ public class ServiceProxy implements InvocationHandler {
         throw new RuntimeException("暂无服务地址");
       }
 
-      ServiceMetaInfo selectedServiceMetaInfo = serviceMetaInfoList.get(0);
+      LoadBalancer loadBalancer = LoadBalancerFactory.getInstance(rpcConfig.getLoadBalancer());
+      Map<String, Object> requestParams = new HashMap<>();
+      requestParams.put("methodName", rpcRequest.getMethodName());
+      ServiceMetaInfo selectedServiceMetaInfo = loadBalancer.select(requestParams, serviceMetaInfoList);
 
       RpcResponse rpcResponse = VertxTcpClient.doRequest(rpcRequest, selectedServiceMetaInfo);
       return rpcResponse.getData();

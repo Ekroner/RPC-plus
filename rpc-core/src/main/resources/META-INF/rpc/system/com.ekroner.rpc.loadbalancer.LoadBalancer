@@ -1,0 +1,3 @@
+roundRobin=com.ekroner.rpc.loadbalancer.RoundRobinLoadBalancer
+random=com.ekroner.rpc.loadbalancer.RandomLoadBalancer
+consistentHash=com.ekroner.rpc.loadbalancer.ConsistentHashLoadBalancer
