@@ -1,0 +1,4 @@
+failBack=com.ekroner.rpc.fault.tolerant.FailBackTolerantStrategy
+failOver=com.ekroner.rpc.fault.tolerant.FailOverTolerantStrategy
+failFast=com.ekroner.rpc.fault.tolerant.FailFastTolerantStrategy
+failSafe=com.ekroner.rpc.fault.tolerant.FailSafeTolerantStrategy
